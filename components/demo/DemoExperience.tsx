@@ -201,7 +201,7 @@ function Intro({ onStart }: { onStart: () => void }) {
       </motion.div>
       <h1 className="font-display text-3xl leading-tight text-ink">Arma tu viaje a Caldas</h1>
       <p className="mt-3 max-w-[28ch] text-[0.95rem] leading-relaxed text-cloud/70">
-        Cuatro preguntas, sin registro. Desliza como en una app de citas y te armamos el plan.
+        Cuatro preguntas, sin registro. Deslizas lo que te gusta y te armamos el plan.
       </p>
       <button
         type="button"
