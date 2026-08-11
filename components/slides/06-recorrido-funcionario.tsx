@@ -7,11 +7,20 @@ import { Kicker, GradientText, Card } from '@/components/ui/primitives'
 import { fadeUp, easeOut, stagger } from '@/lib/motion'
 import type { ReactNode } from 'react'
 
-// Alturas genéricas para el mock de barras (sin cifras, solo forma).
-const BARRAS = [0.45, 0.7, 0.55, 0.9, 0.65, 0.8, 0.5]
+// Mock del tablero: barras ORDENADAS descendente (ranking) con paleta categórica
+// derivada de la marca Caldas es Natural. Sin cifras: es una vista previa ilustrativa.
+const CHART: { h: number; c: string }[] = [
+  { h: 0.96, c: '#2F7D14' },
+  { h: 0.8, c: '#1E88C7' },
+  { h: 0.68, c: '#E8871E' },
+  { h: 0.58, c: '#8A3FC0' },
+  { h: 0.48, c: '#E23E96' },
+  { h: 0.4, c: '#4FA524' },
+  { h: 0.32, c: '#C99A00' },
+]
 
-// Filas genéricas para el mock de brechas: porción cubierta vs. faltante.
-const BRECHAS = [0.75, 0.5, 0.6, 0.35]
+// Filas del mock de brechas: cobertura por municipio, ordenadas descendente. Sin etiquetas.
+const BRECHAS = [0.82, 0.64, 0.5, 0.34]
 
 const growBar = {
   hidden: { scaleY: 0 },
@@ -62,20 +71,27 @@ export default function Slide() {
             </p>
           </div>
 
-          {/* Mock visual de barras — genérico, sin cifras */}
-          <motion.div
-            variants={stagger}
-            className="mt-auto flex h-24 items-end gap-2 rounded-xl border border-black/[0.08] bg-white px-4 pb-4 pt-3"
-          >
-            {BARRAS.map((h, i) => (
-              <motion.div
-                key={i}
-                variants={growBar}
-                style={{ height: `${h * 100}%`, transformOrigin: 'bottom' }}
-                className="flex-1 rounded-t-md bg-gradient-to-t from-accent-bright/40 to-accent-bright/80"
-              />
-            ))}
-          </motion.div>
+          {/* Gráfico de barras (vista previa, sin cifras): ranking descendente, color por categoría */}
+          <div className="mt-auto">
+            <motion.div
+              variants={stagger}
+              aria-hidden
+              className="relative flex h-28 items-end gap-2.5 rounded-xl border border-black/[0.08] bg-white px-4 pb-6 pt-3"
+            >
+              <div className="pointer-events-none absolute inset-x-4 top-[34%] h-px bg-black/[0.05]" />
+              <div className="pointer-events-none absolute inset-x-4 top-[62%] h-px bg-black/[0.05]" />
+              <div className="pointer-events-none absolute inset-x-4 bottom-6 h-px bg-black/15" />
+              {CHART.map((b, i) => (
+                <motion.div
+                  key={i}
+                  variants={growBar}
+                  style={{ height: `${b.h * 100}%`, transformOrigin: 'bottom', backgroundColor: b.c }}
+                  className="flex-1 rounded-t-md"
+                />
+              ))}
+            </motion.div>
+            <p className="mt-2 text-xs text-cloud/65">Intereses más buscados · vista previa</p>
+          </div>
         </Card>
 
         {/* Tarjeta 2 — Informe */}
@@ -93,24 +109,31 @@ export default function Slide() {
             </p>
           </div>
 
-          {/* Mock visual de brechas — porción cubierta vs. faltante, sin etiquetas */}
-          <motion.div
-            variants={stagger}
-            className="mt-auto flex flex-col gap-3 rounded-xl border border-black/[0.08] bg-white px-4 py-4"
-          >
-            {BRECHAS.map((cover, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span className="h-2 w-2 shrink-0 rounded-full bg-accent-bright/50" />
-                <div className="relative h-2.5 flex-1 overflow-hidden rounded-full border border-dashed border-black/15 bg-white">
-                  <motion.div
-                    variants={growRow}
-                    style={{ width: `${cover * 100}%`, transformOrigin: 'left' }}
-                    className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-accent-bright/70 to-accent-bright/40"
-                  />
+          {/* Mock de cobertura por municipio (vista previa): parte cubierta vs. brecha, sin etiquetas */}
+          <div className="mt-auto">
+            <motion.div
+              variants={stagger}
+              aria-hidden
+              className="flex flex-col gap-3 rounded-xl border border-black/[0.08] bg-white px-4 py-4"
+            >
+              {BRECHAS.map((cover, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-accent" />
+                  <div className="relative h-2.5 flex-1 overflow-hidden rounded-full border border-dashed border-black/15 bg-black/[0.03]">
+                    <motion.div
+                      variants={growRow}
+                      style={{ width: `${cover * 100}%`, transformOrigin: 'left' }}
+                      className="absolute inset-y-0 left-0 rounded-full bg-accent"
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </motion.div>
+              ))}
+            </motion.div>
+            <p className="mt-2 text-xs text-cloud/65">
+              <span className="inline-block h-2 w-2 rounded-full bg-accent align-middle" /> Cobertura
+              &nbsp;·&nbsp; <span className="inline-block h-2 w-4 rounded-full border border-dashed border-black/25 align-middle" /> Brecha &nbsp;·&nbsp; vista previa
+            </p>
+          </div>
         </Card>
       </motion.div>
     </SlideShell>
