@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { SlideShell } from '@/components/ui/SlideShell'
 import { BrandLogo, Kicker, GradientText, Chip } from '@/components/ui/primitives'
@@ -8,8 +9,16 @@ import { fadeUp, stagger } from '@/lib/motion'
 export default function Slide() {
   return (
     <SlideShell ambient="spotlight" contentClassName="gap-6">
-      <motion.div variants={fadeUp}>
+      <motion.div variants={fadeUp} className="flex items-center gap-4">
         <BrandLogo priority className="h-9" />
+        <span className="text-xl font-light text-cloud/30">×</span>
+        <Image
+          src="/esnatural/caldas-es-natural-logo.png"
+          alt="Caldas es Natural"
+          width={284}
+          height={290}
+          className="h-10 w-auto"
+        />
       </motion.div>
 
       <motion.div variants={fadeUp} className="mt-2">

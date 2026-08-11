@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
 import { SlideShell } from '@/components/ui/SlideShell'
@@ -9,8 +10,16 @@ import { fadeUp, popIn } from '@/lib/motion'
 export default function Slide() {
   return (
     <SlideShell ambient="spotlight" contentClassName="items-center justify-center gap-8 text-center">
-      <motion.div variants={popIn}>
-        <BrandLogo priority className="h-14 w-auto sm:h-16" />
+      <motion.div variants={popIn} className="flex items-center gap-6">
+        <BrandLogo priority className="h-12 w-auto sm:h-14" />
+        <span className="text-2xl font-light text-cloud/30">×</span>
+        <Image
+          src="/esnatural/caldas-es-natural-logo.png"
+          alt="Caldas es Natural"
+          width={284}
+          height={290}
+          className="h-14 w-auto sm:h-16"
+        />
       </motion.div>
 
       <motion.h1
