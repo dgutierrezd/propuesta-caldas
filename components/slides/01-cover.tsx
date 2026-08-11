@@ -42,7 +42,7 @@ export default function Slide() {
 
           <motion.p
             variants={popIn}
-            className="max-w-[60ch] border-l-2 border-accent-bright/40 pl-4 text-sm leading-relaxed text-cloud/55"
+            className="max-w-[60ch] border-l-2 border-accent-bright/40 pl-4 text-sm leading-relaxed text-cloud/65"
           >
             No reconstruimos ni rediseñamos la plataforma; sumamos una capa sobre el contenido que ya
             existe en <span className="text-cloud/80">esnatural.caldas.gov.co</span>.

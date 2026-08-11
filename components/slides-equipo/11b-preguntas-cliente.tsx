@@ -83,7 +83,7 @@ export default function Slide() {
         ))}
       </motion.div>
 
-      <motion.p variants={fadeUp} className="text-sm text-cloud/55">
+      <motion.p variants={fadeUp} className="text-sm text-cloud/65">
         Estas respuestas cierran nuestros supuestos abiertos y desbloquean el Sprint 1. Las llevamos a
         la reunión de aclaración.
       </motion.p>

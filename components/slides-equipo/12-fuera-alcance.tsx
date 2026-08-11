@@ -42,7 +42,7 @@ export default function Slide() {
         ))}
       </motion.div>
 
-      <motion.p variants={fadeUp} className="text-sm text-cloud/55">
+      <motion.p variants={fadeUp} className="text-sm text-cloud/65">
         Declarar el límite protege el cronograma y la confianza del cliente. Todo esto puede
         contratarse aparte si lo piden.
       </motion.p>

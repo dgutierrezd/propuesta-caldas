@@ -38,7 +38,7 @@ function Row({
         >
           {label}
         </p>
-        {sub && <p className="mt-0.5 truncate text-[0.72rem] text-cloud/50">{sub}</p>}
+        {sub && <p className="mt-0.5 truncate text-[0.72rem] text-cloud/65">{sub}</p>}
       </div>
       <p
         className={[

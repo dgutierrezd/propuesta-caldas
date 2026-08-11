@@ -34,7 +34,7 @@ export default function Slide() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <motion.div variants={stagger} className="flex flex-col gap-2.5">
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cloud/50">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cloud/65">
             <AlertTriangle className="h-4 w-4 text-accent-bright" /> Riesgos y manejo
           </p>
           {RIESGOS.map(({ r, m }) => (
@@ -46,7 +46,7 @@ export default function Slide() {
         </motion.div>
 
         <motion.div variants={stagger} className="flex flex-col gap-2.5">
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cloud/50">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cloud/65">
             <KeyRound className="h-4 w-4 text-accent-bright" /> Dependencias del cliente
           </p>
           {DEPS.map(({ icon: Icon, t }) => (
@@ -57,7 +57,7 @@ export default function Slide() {
               <p className="text-[0.9rem] leading-snug text-cloud">{t}</p>
             </motion.div>
           ))}
-          <p className="mt-1 text-[0.82rem] text-cloud/55">Sin estas tres, no arranca el Sprint 1.</p>
+          <p className="mt-1 text-[0.82rem] text-cloud/65">Sin estas tres, no arranca el Sprint 1.</p>
         </motion.div>
       </div>
     </SlideShell>

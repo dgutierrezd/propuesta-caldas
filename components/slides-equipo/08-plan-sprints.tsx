@@ -42,7 +42,7 @@ export default function Slide() {
               />
               <div className={`h-full rounded-xl border p-4 ${i === 4 ? 'border-accent-bright/40 bg-accent/15' : 'border-black/[0.08] bg-white'}`}>
                 <div className="text-[0.68rem] font-bold uppercase tracking-wider text-accent-bright">{s}</div>
-                <div className="tnum mb-2 text-xs text-cloud/55">{wk}</div>
+                <div className="tnum mb-2 text-xs text-cloud/65">{wk}</div>
                 <h3 className="mb-3 font-display text-[0.95rem] leading-tight text-ink">{title}</h3>
                 <span className="inline-flex items-center gap-1.5 text-[0.72rem] font-semibold text-accent-bright">
                   <Play className="h-3 w-3 fill-current" /> {demo}

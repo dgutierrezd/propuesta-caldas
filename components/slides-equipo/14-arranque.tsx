@@ -34,7 +34,7 @@ export default function Slide() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <motion.div variants={stagger} className="flex flex-col gap-2.5">
-          <p className="text-xs font-bold uppercase tracking-wider text-cloud/50">Del cliente</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-cloud/65">Del cliente</p>
           {CLIENTE.map(({ icon: Icon, t }) => (
             <motion.div key={t} variants={popIn} className="flex items-center gap-3 rounded-xl border border-black/[0.08] bg-white px-4 py-2.5">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-bright/12 text-accent-bright">
@@ -46,7 +46,7 @@ export default function Slide() {
         </motion.div>
 
         <motion.div variants={stagger} className="flex flex-col gap-2.5">
-          <p className="text-xs font-bold uppercase tracking-wider text-cloud/50">De nuestro lado</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-cloud/65">De nuestro lado</p>
           {INTERNO.map(({ icon: Icon, t }) => (
             <motion.div key={t} variants={popIn} className="flex items-center gap-3 rounded-xl border border-accent-bright/20 bg-accent/10 px-4 py-2.5">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-bright/15 text-accent-bright">

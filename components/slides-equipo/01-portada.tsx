@@ -45,7 +45,7 @@ export default function Slide() {
 
       <motion.p
         variants={fadeUp}
-        className="mt-3 max-w-[60ch] border-l-2 border-accent-bright/50 pl-4 text-sm text-cloud/55"
+        className="mt-3 max-w-[60ch] border-l-2 border-accent-bright/50 pl-4 text-sm text-cloud/65"
       >
         Sesión de arranque interna. No es el material que ve el cliente: aquí alineamos el equipo
         sobre el trabajo y el plan.

@@ -176,11 +176,15 @@ export default function Deck({ slides }: { slides: SlideDef[] }) {
               aria-label={`Ir a ${s.label}`}
               aria-current={i === index}
               onClick={() => jump(i)}
-              className={clsx(
-                'h-2 rounded-full transition-all duration-300',
-                i === index ? 'w-7 bg-accent-bright' : 'w-2 bg-black/20 hover:bg-black/40',
-              )}
-            />
+              className="group grid h-11 cursor-pointer place-items-center px-1"
+            >
+              <span
+                className={clsx(
+                  'block h-2 rounded-full transition-all duration-300',
+                  i === index ? 'w-7 bg-accent-bright' : 'w-2 bg-black/20 group-hover:bg-black/40',
+                )}
+              />
+            </button>
           ))}
         </div>
 
@@ -191,7 +195,7 @@ export default function Deck({ slides }: { slides: SlideDef[] }) {
             aria-label="Anterior"
             onClick={() => paginate(-1)}
             disabled={index === 0}
-            className="grid h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-cloud transition hover:border-accent-bright/60 hover:bg-black/[0.04] disabled:opacity-30"
+            className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-black/[0.08] bg-white text-cloud transition hover:border-accent-bright/60 hover:bg-black/[0.04] disabled:cursor-default disabled:opacity-30"
           >
             <ChevronLeft size={18} />
           </button>
@@ -200,7 +204,7 @@ export default function Deck({ slides }: { slides: SlideDef[] }) {
             aria-label="Siguiente"
             onClick={() => paginate(1)}
             disabled={index === total - 1}
-            className="grid h-10 w-10 place-items-center rounded-full border border-black/[0.08] bg-white text-cloud transition hover:border-accent-bright/60 hover:bg-black/[0.04] disabled:opacity-30"
+            className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-black/[0.08] bg-white text-cloud transition hover:border-accent-bright/60 hover:bg-black/[0.04] disabled:cursor-default disabled:opacity-30"
           >
             <ChevronRight size={18} />
           </button>

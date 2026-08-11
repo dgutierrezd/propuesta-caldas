@@ -42,7 +42,7 @@ export default function Slide() {
         ))}
       </motion.div>
 
-      <motion.p variants={fadeUp} className="text-sm text-cloud/55">
+      <motion.p variants={fadeUp} className="text-sm text-cloud/65">
         Cada criterio es verificable y se revisa en la demostración del sprint. Nada se da por hecho
         sin demostrarlo.
       </motion.p>

@@ -50,7 +50,7 @@ export default function Slide() {
             <div className="relative">
               <span className="font-display text-4xl leading-none text-accent-bright">{n}</span>
               <p className="mt-2 text-sm font-semibold text-cloud">Subregión</p>
-              <p className="mt-1 text-[0.72rem] leading-snug text-cloud/55">
+              <p className="mt-1 text-[0.72rem] leading-snug text-cloud/65">
                 Municipios agrupados por la clasificación de la plataforma
               </p>
             </div>

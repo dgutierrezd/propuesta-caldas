@@ -40,7 +40,7 @@ export default function Slide() {
         ))}
       </motion.div>
 
-      <motion.p variants={fadeUp} className="text-sm text-cloud/55">
+      <motion.p variants={fadeUp} className="text-sm text-cloud/65">
         Asignación de personas por confirmar en la reunión de arranque.
       </motion.p>
     </SlideShell>

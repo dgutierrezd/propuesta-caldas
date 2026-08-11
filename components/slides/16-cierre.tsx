@@ -42,7 +42,7 @@ export default function Slide() {
         <ArrowRight className="h-4 w-4 text-accent-bright" aria-hidden />
       </motion.div>
 
-      <motion.p variants={fadeUp} className="mt-2 text-[0.82rem] text-cloud/50">
+      <motion.p variants={fadeUp} className="mt-2 text-[0.82rem] text-cloud/65">
         Adisoft · Manizales, Caldas · Propuesta para la Gobernación de Caldas.
       </motion.p>
     </SlideShell>
