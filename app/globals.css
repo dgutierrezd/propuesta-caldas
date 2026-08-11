@@ -1,0 +1,88 @@
+@import "tailwindcss";
+
+@theme {
+  /* Caldas es Natural — tema claro y natural */
+  --color-blue-950: #F4EFE9;   /* fondo crema de página (Deck/SlideShell) */
+  --color-blue-900: #FBF7F1;   /* superficie secundaria */
+  --color-blue-dark: #6FB43A;  /* verde, solo se usa en un blob del fondo */
+  --color-accent: #2F7D14;         /* verde profundo legible: texto, íconos, bordes, rellenos primarios */
+  --color-accent-bright: #4FA524;  /* verde medio: resaltados/acento vivo */
+  --color-accent-hover: #256510;
+  --color-accent-tint: #EAF3E2;
+  --color-ink: #1D1F1B;        /* casi negro para títulos (reemplaza a text-white) */
+  --color-cloud: #33382E;      /* texto por defecto (oscuro): text-cloud y text-cloud/70 */
+  --color-sun: #FFC318;        /* amarillo (acento secundario) */
+  --color-magenta: #FF41A9;
+  --color-purple: #9641D3;
+  --color-orange: #FFA11B;
+
+  --font-display: var(--font-bricolage);
+  --font-sans: var(--font-inter);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    /* Deck: sin scroll — cada slide ocupa la pantalla completa */
+    height: 100%;
+    overflow: hidden;
+    background: var(--color-blue-950);
+  }
+
+  body {
+    height: 100%;
+    overflow: hidden;
+    color: var(--color-ink);
+    background: var(--color-blue-950);
+    font-family: var(--font-inter), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior: none;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-bricolage), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: #ffffff;
+  }
+}
+
+/* ---- Texturas de fondo (oscuras y sutiles sobre crema) ---- */
+.bg-grid-light {
+  background-image:
+    linear-gradient(to right, rgba(29, 31, 27, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(29, 31, 27, 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+.bg-dots-light {
+  background-image: radial-gradient(rgba(29, 31, 27, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Número tabular para cifras alineadas */
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* Degradado de acento reutilizable para textos destacados (verde→dorado, legible sobre claro) */
+.text-gradient {
+  background: linear-gradient(100deg, #2F9E17 0%, #7FB01E 50%, #C99A00 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
