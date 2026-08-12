@@ -15,7 +15,6 @@ import {
   User, Heart, Baby, Users, X, Check, RotateCcw, MapPin, ArrowRight,
   CalendarDays, Wand2, type LucideIcon,
 } from 'lucide-react'
-import { BrandLogo } from '@/components/ui/primitives'
 
 /* ---------------------------------------------------------------- i18n */
 type Lang = 'es' | 'en'
@@ -191,8 +190,9 @@ export default function DemoExperience() {
             className={desktop ? 'h-9 w-9 object-contain' : 'h-8 w-8 object-contain'}
             priority
           />
-          <span className="text-cloud/30">·</span>
-          <BrandLogo className={desktop ? 'h-6 w-auto' : 'h-5 w-auto'} />
+          <span className={desktop ? 'font-display text-base font-semibold text-ink' : 'font-display text-sm font-semibold text-ink'}>
+            Caldas es Natural
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -382,8 +382,7 @@ function BrandPanel({ T }: { T: Dict }) {
             className="h-9 w-9 object-contain"
             priority
           />
-          <span className="text-cloud/30">·</span>
-          <BrandLogo className="h-6 w-auto" />
+          <span className="font-display text-base font-semibold text-ink">Caldas es Natural</span>
         </div>
 
         <div>
