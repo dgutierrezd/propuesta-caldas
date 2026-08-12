@@ -40,13 +40,16 @@ const COMPANIA: Opcion[] = [
   { id: 'amigos', label: 'Con amigos', icon: Users },
 ]
 
+// Municipios reconocibles de Caldas (la gente piensa en municipios, no en subregiones).
+// Muestra ilustrativa; en producción sale del catálogo real de los 27 municipios.
 const ZONAS: Opcion[] = [
-  { id: 'centro-sur', label: 'Centro Sur', icon: MapPin },
-  { id: 'norte', label: 'Norte', icon: MapPin },
-  { id: 'alto-oriente', label: 'Alto Oriente', icon: MapPin },
-  { id: 'alto-occidente', label: 'Alto Occidente', icon: MapPin },
-  { id: 'bajo-occidente', label: 'Bajo Occidente', icon: MapPin },
-  { id: 'magdalena', label: 'Magdalena Caldense', icon: MapPin },
+  { id: 'manizales', label: 'Manizales', icon: MapPin },
+  { id: 'villamaria', label: 'Villamaría', icon: MapPin },
+  { id: 'salamina', label: 'Salamina', icon: MapPin },
+  { id: 'aguadas', label: 'Aguadas', icon: MapPin },
+  { id: 'riosucio', label: 'Riosucio', icon: MapPin },
+  { id: 'marmato', label: 'Marmato', icon: MapPin },
+  { id: 'la-dorada', label: 'La Dorada', icon: MapPin },
   { id: 'sorprendeme', label: 'Sorpréndeme', icon: Wand2 },
 ]
 
@@ -161,8 +164,8 @@ export default function DemoExperience() {
 
               {step === 'zona' && (
                 <ChoiceStep
-                  title="¿Por dónde quieres empezar?"
-                  hint="Elige una zona o déjate sorprender"
+                  title="¿A qué municipio quieres ir?"
+                  hint="Elige uno o déjate sorprender"
                   columns={2}
                   options={ZONAS}
                   selected={profile.zona}
@@ -539,7 +542,7 @@ function Result({ profile, onReset, reduce }: { profile: Profile; onReset: () =>
         <div className="grid grid-cols-3 gap-2.5">
           <Mini label="Días" value={profile.dias != null ? `${profile.dias}` : '—'} />
           <Mini label="Compañía" value={compania?.label ?? '—'} />
-          <Mini label="Zona" value={zona?.label ?? '—'} />
+          <Mini label="Destino" value={zona?.label ?? '—'} />
         </div>
 
         <div className="flex items-center gap-3 rounded-2xl border border-accent/20 bg-accent/[0.06] p-3">
