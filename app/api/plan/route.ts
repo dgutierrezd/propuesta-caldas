@@ -124,6 +124,40 @@ async function wpGet(path: string): Promise<WpItem[]> {
   return data
 }
 
+/* --- Mapa municipio(slug) → id de REGIÓN (taxonomía `zonas`) para secuenciar
+ * los días agrupando municipios cercanos de la misma región (verificado). --- */
+const REGION_ID: Record<string, number> = {
+  // Centro Sur
+  manizales: 12, villamaria: 12, chinchina: 12, neira: 12, palestina: 12,
+  // Norte
+  salamina: 11, aguadas: 11, pacora: 11, aranzazu: 11, filadelfia: 11, 'la-merced': 11, marulanda: 11,
+  // Occidente Alto
+  riosucio: 9, supia: 9, marmato: 9, 'san-jose': 9,
+  // Occidente Bajo
+  anserma: 10, belalcazar: 10, risaralda: 10, viterbo: 10,
+  // Alto Oriente
+  manzanares: 7, marquetalia: 7, pensilvania: 7,
+  // Magdalena Caldense
+  'la-dorada': 8, victoria: 8, norcasia: 8, samana: 8,
+}
+/* Ordena municipios agrupando por región (los de la misma región quedan juntos)
+ * para que la ruta día a día sea geográficamente coherente. Mantiene el orden
+ * relativo original dentro de cada región (estable). */
+function sequenceByRegion(slugs: string[]): string[] {
+  const groups = new Map<number, string[]>()
+  const order: number[] = []
+  for (const s of slugs) {
+    const r = REGION_ID[s] ?? 999
+    if (!groups.has(r)) { groups.set(r, []); order.push(r) }
+    groups.get(r)!.push(s)
+  }
+  return order.flatMap((r) => groups.get(r)!)
+}
+
+function mapsUrlFor(title: string, municipio: string): string {
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${title}, ${municipio}, Caldas, Colombia`)}`
+}
+
 function imageOf(item: WpItem): string | null {
   return item._embedded?.['wp:featuredmedia']?.[0]?.source_url ?? null
 }
@@ -149,20 +183,31 @@ function tipoLabel(item: WpItem, taxonomy: string, want: Set<number>): string {
   const pref = terms.find((tr) => want.has(tr.id)) ?? terms[0]
   return pref ? decode(pref.name) : 'Experiencia'
 }
-function toPlanItem(item: WpItem, taxonomy: string, want: Set<number>): PlanItem {
-  return { title: decode(item.title.rendered), tipo: tipoLabel(item, taxonomy, want), link: item.link, image: imageOf(item) }
+function toPlanItem(item: WpItem, taxonomy: string, want: Set<number>, municipio: string): PlanItem {
+  const title = decode(item.title.rendered)
+  return {
+    title,
+    tipo: tipoLabel(item, taxonomy, want),
+    link: item.link,
+    image: imageOf(item),
+    mapsUrl: mapsUrlFor(title, municipio),
+  }
 }
 
-/* Elige actividades reales para un municipio, priorizando los intereses.
- * `seen` acumula links ya usados para que un municipio repetido en otro día no
- * muestre exactamente lo mismo. */
-async function itemsForMuni(zonaId: number, wantTipos: Set<number>, seen: Set<string>): Promise<PlanItem[]> {
+/* Elige actividades reales para un municipio con RANKING por relevancia y
+ * VARIEDAD dentro del día:
+ *  - Puntúa cada experiencia por nº de coincidencias con los intereses; la
+ *    imagen desempata. Ordena descendente.
+ *  - Evita repetir el mismo `tipo` dentro del día (mix de experiencias).
+ *  - Garantiza al menos 1 experiencia + intenta 1 prestador local
+ *    (gastronomía/alojamiento) del municipio para dar mezcla.
+ *  - `seen` evita repetir ítems entre días. */
+async function itemsForMuni(zonaId: number, wantTipos: Set<number>, seen: Set<string>, municipio: string): Promise<PlanItem[]> {
   const [experiencias, prestadores] = await Promise.all([
     wpGet(`/experiencia?zonas=${zonaId}&per_page=30&_embed`).catch(() => []),
     wpGet(`/prestadores?zonas=${zonaId}&per_page=20&_embed`).catch(() => []),
   ])
 
-  // Puntuar experiencias por coincidencia con los intereses; imagen suma desempate.
   const scored = experiencias
     .filter((e) => !seen.has(e.link))
     .map((e) => {
@@ -172,20 +217,40 @@ async function itemsForMuni(zonaId: number, wantTipos: Set<number>, seen: Set<st
     })
     .sort((a, b) => b.score - a.score)
 
-  const matched = scored.filter((s) => s.score >= 2)
-  const chosen = (matched.length ? matched : scored).slice(0, 3).map((s) => {
-    seen.add(s.e.link)
-    return toPlanItem(s.e, 'tipo_de_experiencia', wantTipos)
-  })
+  const chosen: PlanItem[] = []
+  const tiposUsados = new Set<string>() // variedad: no repetir tipo dentro del día
+  const MAX = 3
 
-  // Rellenar con un prestador local (gastronomía/alojamiento) si quedan huecos.
-  if (chosen.length < 3) {
+  // 1) Experiencias: prioriza puntaje alto y tipos NO repetidos en el día.
+  for (const s of scored) {
+    if (chosen.length >= MAX) break
+    const it = toPlanItem(s.e, 'tipo_de_experiencia', wantTipos, municipio)
+    if (tiposUsados.has(it.tipo)) continue // salta duplicados de tipo en primera pasada
+    seen.add(s.e.link)
+    tiposUsados.add(it.tipo)
+    chosen.push(it)
+  }
+  // 1b) Segunda pasada: si aún hay hueco, admite tipos repetidos (mejor llenar).
+  if (chosen.length < 2) {
+    for (const s of scored) {
+      if (chosen.length >= MAX) break
+      if (seen.has(s.e.link)) continue
+      seen.add(s.e.link)
+      chosen.push(toPlanItem(s.e, 'tipo_de_experiencia', wantTipos, municipio))
+    }
+  }
+
+  // 2) Un prestador local para el mix (gastronomía/alojamiento), con imagen primero.
+  if (chosen.length < MAX) {
     const withImg = [...prestadores].sort((a, b) => (imageOf(b) ? 1 : 0) - (imageOf(a) ? 1 : 0))
     for (const p of withImg) {
-      if (chosen.length >= 3) break
+      if (chosen.length >= MAX) break
       if (seen.has(p.link)) continue
+      const it = toPlanItem(p, 'categorias_servicios', wantTipos, municipio)
+      if (tiposUsados.has(it.tipo)) continue
       seen.add(p.link)
-      chosen.push(toPlanItem(p, 'categorias_servicios', wantTipos))
+      tiposUsados.add(it.tipo)
+      chosen.push(it)
     }
   }
   return chosen
@@ -204,12 +269,18 @@ export async function POST(req: Request) {
   const intereses = Array.isArray(body.intereses) ? body.intereses.filter((i) => INTEREST_TIPO[i]) : []
   const wantTipos = new Set<number>(intereses.flatMap((i) => INTEREST_TIPO[i] ?? []))
 
+  const lang: 'es' | 'en' = body.lang === 'en' ? 'en' : 'es'
+  const compania = typeof body.compania === 'string' ? body.compania : null
+
   // Municipios elegidos por el usuario (válidos); si no eligió, modo sorpresa.
   const picked = (Array.isArray(body.municipios) ? body.municipios : []).filter((m) => ZONA_ID[m])
-  const base = picked.length ? picked : DEFAULT_MUNIS
+  // Secuencia por región: agrupa municipios cercanos para una ruta coherente.
+  const base = sequenceByRegion(picked.length ? picked : DEFAULT_MUNIS)
   let note: string | null = picked.length
     ? null
-    : 'Ruta sugerida por Caldas es Natural según tus intereses (no elegiste municipios).'
+    : lang === 'en'
+      ? 'Route suggested by Caldas es Natural based on your interests (you did not pick towns).'
+      : 'Ruta sugerida por Caldas es Natural según tus intereses (no elegiste municipios).'
 
   // Un municipio por día; si hay menos municipios que días, se reparten cíclicamente.
   const perDay: string[] = Array.from({ length: dias }, (_, d) => base[d % base.length]!)
@@ -219,17 +290,32 @@ export async function POST(req: Request) {
     const seen = new Set<string>()
     for (let d = 0; d < perDay.length; d++) {
       const slug = perDay[d]!
-      const items = await itemsForMuni(ZONA_ID[slug]!, wantTipos, seen)
-      days.push({ n: d + 1, municipio: ZONA_LABEL[slug] ?? slug, items })
+      const muniLabel = ZONA_LABEL[slug] ?? slug
+      const items = await itemsForMuni(ZONA_ID[slug]!, wantTipos, seen, muniLabel)
+      days.push({ n: d + 1, municipio: muniLabel, items })
     }
 
     if (!note && days.every((dd) => dd.items.length === 0)) {
-      note = 'No encontramos fichas para esta combinación; prueba con otros municipios o intereses.'
+      note = lang === 'en'
+        ? 'We found no listings for this combination; try other towns or interests.'
+        : 'No encontramos fichas para esta combinación; prueba con otros municipios o intereses.'
     } else if (days.some((dd) => dd.items.length < 2)) {
-      note = note ?? 'Algunos días muestran menos actividades porque el catálogo aún tiene pocas fichas para ese municipio.'
+      note = note ?? (lang === 'en'
+        ? 'Some days show fewer activities because the catalog still has few listings for that town.'
+        : 'Algunos días muestran menos actividades porque el catálogo aún tiene pocas fichas para ese municipio.')
     }
 
-    const payload: PlanResponse = { days, usedInterests: intereses, note }
+    // Narrativa: IA si hay ANTHROPIC_API_KEY; si no o si falla, fallback por reglas.
+    const { intro, aiNarrative } = await narrate(days, intereses, compania, lang)
+
+    // Enlaces para compartir.
+    const uniqueMunis = [...new Set(days.map((d) => d.municipio))]
+    const mapsAllUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(uniqueMunis.join(', ') + ', Caldas, Colombia')}`
+    const shareText = buildShareText(days, intro, uniqueMunis, lang)
+
+    const payload: PlanResponse = {
+      days, usedInterests: intereses, note, intro, shareText, mapsAllUrl, aiNarrative,
+    }
     return NextResponse.json(payload)
   } catch (e) {
     return NextResponse.json(
@@ -237,4 +323,119 @@ export async function POST(req: Request) {
       { status: 502 },
     )
   }
+}
+
+/* ---------------------------------------------------- narrativa (IA + fallback)
+ * Redacta una intro cálida y 1 frase por día, ANCLADA solo a las fichas reales
+ * ya seleccionadas. Usa el SDK de Anthropic (carga dinámica) si hay API key; si
+ * no hay key o si algo falla, cae a un resumen por reglas. El demo funciona igual
+ * sin key. Muta `days[i].narrative`. */
+async function narrate(
+  days: PlanDay[],
+  intereses: string[],
+  compania: string | null,
+  lang: 'es' | 'en',
+): Promise<{ intro: string | null; aiNarrative: boolean }> {
+  // Fallback por reglas (siempre disponible).
+  const ruleFallback = (): { intro: string | null; aiNarrative: false } => {
+    for (const d of days) {
+      const titles = d.items.map((i) => i.title)
+      d.narrative = titles.length
+        ? lang === 'en'
+          ? `In ${d.municipio}: ${titles.slice(0, 3).join(', ')}.`
+          : `En ${d.municipio}: ${titles.slice(0, 3).join(', ')}.`
+        : lang === 'en'
+          ? `Free day to explore ${d.municipio}.`
+          : `Día libre para explorar ${d.municipio}.`
+    }
+    const munis = [...new Set(days.map((d) => d.municipio))]
+    const intro = lang === 'en'
+      ? `A ${days.length}-day route through ${munis.join(', ')} with real Caldas es Natural listings.`
+      : `Una ruta de ${days.length} días por ${munis.join(', ')} con fichas reales de Caldas es Natural.`
+    return { intro, aiNarrative: false }
+  }
+
+  const key = process.env.GROQ_API_KEY
+  if (!key) return ruleFallback()
+
+  try {
+    const facts = days.map((d) => ({
+      day: d.n,
+      town: d.municipio,
+      items: d.items.map((i) => ({ title: i.title, type: i.tipo })),
+    }))
+    const langName = lang === 'en' ? 'English' : 'Spanish'
+    const system =
+      `You write warm, concise travel copy for a Caldas (Colombia) tourism demo. ` +
+      `Write ONLY in ${langName}. Use EXCLUSIVELY the real listings given by the user; ` +
+      `do NOT invent places, prices, hours or facts. If a day has no items, say it is a free/open day. ` +
+      `Return STRICT JSON ONLY (no markdown), shape: ` +
+      `{"intro": string (<=2 sentences), "days": [{"day": number, "line": string (1 sentence)}]}.`
+    const user =
+      `Traveler interests: ${intereses.join(', ') || 'general'}. Company: ${compania || 'unspecified'}.\n` +
+      `Listings (use only these):\n${JSON.stringify(facts)}`
+
+    const callGroq = async (model: string) => {
+      const ctrl = new AbortController()
+      const to = setTimeout(() => ctrl.abort(), 6000)
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model,
+            temperature: 0.4,
+            max_tokens: 500,
+            response_format: { type: 'json_object' },
+            messages: [
+              { role: 'system', content: system },
+              { role: 'user', content: user },
+            ],
+          }),
+          signal: ctrl.signal,
+        })
+        if (!res.ok) return null
+        return (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
+      } catch {
+        return null
+      } finally {
+        clearTimeout(to)
+      }
+    }
+
+    // Modelo principal; respaldo a un modelo más ligero si el primero no responde.
+    const data = (await callGroq('llama-3.3-70b-versatile')) ?? (await callGroq('llama-3.1-8b-instant'))
+    const text = data?.choices?.[0]?.message?.content ?? ''
+    if (!text) return ruleFallback()
+
+    const jsonStr = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)
+    const parsed = JSON.parse(jsonStr) as { intro?: string; days?: Array<{ day: number; line: string }> }
+    const byDay = new Map((parsed.days ?? []).map((x) => [x.day, x.line]))
+    for (const d of days) {
+      const line = byDay.get(d.n)
+      if (line && typeof line === 'string') d.narrative = line
+    }
+    // Si el modelo no cubrió ningún día, considera fallo → reglas.
+    if (days.every((d) => !d.narrative)) return ruleFallback()
+    return { intro: parsed.intro ?? ruleFallback().intro, aiNarrative: true }
+  } catch {
+    return ruleFallback()
+  }
+}
+
+/* Texto plano para compartir por WhatsApp (bilingüe según el idioma pedido). */
+function buildShareText(days: PlanDay[], intro: string | null, munis: string[], lang: 'es' | 'en'): string {
+  const L = lang === 'en'
+  const head = L ? `My Caldas itinerary (${days.length} days)` : `Mi itinerario por Caldas (${days.length} días)`
+  const lines: string[] = [head]
+  if (intro) lines.push(intro)
+  lines.push('')
+  for (const d of days) {
+    lines.push(`${L ? 'Day' : 'Día'} ${d.n} · ${d.municipio}`)
+    if (d.items.length === 0) lines.push(`  - ${L ? '(free day)' : '(día libre)'}`)
+    for (const it of d.items) lines.push(`  - ${it.title} (${it.tipo})`)
+    lines.push('')
+  }
+  lines.push(L ? 'Built with Caldas es Natural · esnatural.caldas.gov.co' : 'Armado con Caldas es Natural · esnatural.caldas.gov.co')
+  return lines.join('\n')
 }

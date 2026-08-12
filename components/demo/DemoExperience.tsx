@@ -13,7 +13,8 @@ import {
 import {
   Coffee, Droplets, Footprints, Compass, Landmark, UtensilsCrossed, Bird, Palette,
   User, Heart, Baby, Users, X, Check, RotateCcw, MapPin, ArrowRight,
-  CalendarDays, Wand2, ExternalLink, AlertTriangle, type LucideIcon,
+  CalendarDays, Wand2, ExternalLink, AlertTriangle, Map, Share2, Copy,
+  type LucideIcon,
 } from 'lucide-react'
 import type { PlanResponse } from '@/lib/plan'
 
@@ -72,6 +73,11 @@ const t = {
     errBody: 'El catálogo no respondió. Inténtalo de nuevo en un momento.',
     emptyDay: 'Sin fichas para este municipio todavía.',
     startOver: 'Empezar de nuevo',
+    maps: 'Maps',
+    share: 'Compartir por WhatsApp',
+    copy: 'Copiar plan',
+    copied: '¡Copiado!',
+    mapsAll: 'Ver municipios en el mapa',
   },
   en: {
     reset: 'Restart demo',
@@ -123,6 +129,11 @@ const t = {
     errBody: 'The catalog did not respond. Please try again in a moment.',
     emptyDay: 'No listings for this town yet.',
     startOver: 'Start over',
+    maps: 'Maps',
+    share: 'Share on WhatsApp',
+    copy: 'Copy plan',
+    copied: 'Copied!',
+    mapsAll: 'View towns on the map',
   },
 }
 type Dict = typeof t['es']
@@ -894,6 +905,19 @@ function Result({
 }) {
   const [state, setState] = useState<FetchState>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
+  const [copied, setCopied] = useState(false)
+
+  const shareText = state.status === 'ok' ? state.plan.shareText : ''
+  const onCopy = useCallback(() => {
+    if (!shareText) return
+    navigator.clipboard?.writeText(shareText).then(
+      () => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1800)
+      },
+      () => {},
+    )
+  }, [shareText])
 
   useEffect(() => {
     let alive = true
@@ -902,7 +926,7 @@ function Result({
     fetch('/api/plan', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(profile),
+      body: JSON.stringify({ ...profile, lang }),
       signal: ctrl.signal,
     })
       .then((r) => {
@@ -919,9 +943,10 @@ function Result({
       alive = false
       ctrl.abort()
     }
-    // profile es estable dentro de este paso; attempt fuerza reintento.
+    // profile es estable dentro de este paso; attempt fuerza reintento; lang
+    // re-pide para actualizar la narrativa/notas al idioma elegido.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt])
+  }, [attempt, lang])
 
   const interesLabels = INTERESES.filter((it) =>
     (state.status === 'ok' ? state.plan.usedInterests : profile.intereses).includes(it.id),
@@ -977,6 +1002,11 @@ function Result({
         )}
         {state.status === 'ok' && (
           <div className="space-y-3 pb-1">
+            {state.plan.intro && (
+              <p className="rounded-xl bg-accent/[0.05] px-3 py-2.5 text-[0.82rem] leading-snug text-ink/80">
+                {state.plan.intro}
+              </p>
+            )}
             {state.plan.days.map((day, di) => (
               <motion.div
                 key={day.n}
@@ -1000,17 +1030,22 @@ function Result({
                   </div>
                 </div>
 
+                {day.narrative && (
+                  <p className="px-3.5 pt-2.5 text-[0.78rem] leading-snug text-cloud/75">{day.narrative}</p>
+                )}
+
                 {day.items.length === 0 ? (
                   <p className="px-3.5 py-3 text-[0.8rem] text-cloud/60">{T.emptyDay}</p>
                 ) : (
                   <ul className="divide-y divide-black/[0.05]">
                     {day.items.map((item) => (
-                      <li key={item.link}>
+                      <li key={item.link} className="flex items-center gap-3 px-3 py-2.5">
                         <a
                           href={item.link}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="group flex items-center gap-3 px-3 py-2.5 transition hover:bg-accent/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+                          className="group flex min-w-0 flex-1 items-center gap-3 rounded-lg transition hover:bg-accent/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                          aria-label={`${T.viewSheet}: ${item.title}`}
                         >
                           <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-accent/10 text-accent">
                             {item.image ? (
@@ -1029,13 +1064,24 @@ function Result({
                             <span className="block truncate font-display text-[0.92rem] leading-tight text-ink">
                               {item.title}
                             </span>
-                            <span className="mt-0.5 inline-block rounded-full bg-black/[0.04] px-2 py-0.5 text-[0.66rem] font-semibold text-cloud/70">
-                              {item.tipo}
+                            <span className="mt-1 flex items-center gap-1.5">
+                              <span className="inline-block rounded-full bg-black/[0.04] px-2 py-0.5 text-[0.66rem] font-semibold text-cloud/70">
+                                {item.tipo}
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-[0.68rem] font-semibold text-accent opacity-80 transition group-hover:opacity-100">
+                                {T.viewSheet} <ExternalLink className="h-3 w-3" />
+                              </span>
                             </span>
                           </span>
-                          <span className="inline-flex shrink-0 items-center gap-1 text-[0.72rem] font-semibold text-accent opacity-80 transition group-hover:opacity-100">
-                            {T.viewSheet} <ExternalLink className="h-3.5 w-3.5" />
-                          </span>
+                        </a>
+                        <a
+                          href={item.mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`${T.maps}: ${item.title}`}
+                          className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border border-accent/25 bg-white text-accent transition hover:border-accent/60 hover:bg-accent/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+                        >
+                          <Map className="h-4 w-4" />
                         </a>
                       </li>
                     ))}
@@ -1049,6 +1095,35 @@ function Result({
                 {state.plan.note}
               </p>
             )}
+
+            {/* Acciones del plan: compartir por WhatsApp y copiar */}
+            <div className="flex gap-2 pt-0.5">
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(state.plan.shareText)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-[44px] flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-[#25D366] px-3 py-2.5 text-[0.8rem] font-semibold text-white shadow-sm transition hover:brightness-95 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBFAF6]"
+              >
+                <Share2 className="h-4 w-4" /> {T.share}
+              </a>
+              <button
+                type="button"
+                onClick={onCopy}
+                aria-label={T.copy}
+                className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-full border border-accent/30 bg-white px-4 py-2.5 text-[0.8rem] font-semibold text-accent transition hover:border-accent/60 hover:bg-accent/[0.05] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBFAF6]"
+              >
+                {copied ? <Check className="h-4 w-4" strokeWidth={3} /> : <Copy className="h-4 w-4" />}
+                {copied ? T.copied : T.copy}
+              </button>
+            </div>
+            <a
+              href={state.plan.mapsAllUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-full border border-black/[0.08] bg-white px-3 py-2.5 text-[0.8rem] font-semibold text-cloud/80 transition hover:border-accent/40 hover:text-accent active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBFAF6]"
+            >
+              <Map className="h-4 w-4" /> {T.mapsAll}
+            </a>
           </div>
         )}
       </div>
