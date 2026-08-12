@@ -25,9 +25,9 @@ const INTERESES: Interes[] = [
   { id: 'senderismo', label: 'Naturaleza y senderismo', tag: 'Bosques, nevado y miradores', icon: Footprints, from: '#2F7D14', to: '#17420A' },
   { id: 'aventura', label: 'Aventura', tag: 'Parapente, rafting y canopy', icon: Compass, from: '#E8871E', to: '#9A5510' },
   { id: 'cultura', label: 'Cultura y patrimonio', tag: 'Pueblos, arriería y tradición', icon: Landmark, from: '#8A3FC0', to: '#54237A' },
-  { id: 'gastronomia', label: 'Gastronomía', tag: 'Sabores de la región', icon: UtensilsCrossed, from: '#E23E96', to: '#8F1E5C' },
-  { id: 'aves', label: 'Avistamiento de aves', tag: 'Biodiversidad en vivo', icon: Bird, from: '#0EA5A0', to: '#075E5B' },
-  { id: 'artesanias', label: 'Artesanías', tag: 'Manos que cuentan historias', icon: Palette, from: '#C99A00', to: '#856600' },
+  { id: 'gastronomia', label: 'Gastronomía', tag: 'Cocina de montaña y café', icon: UtensilsCrossed, from: '#E23E96', to: '#8F1E5C' },
+  { id: 'aves', label: 'Avistamiento de aves', tag: 'Cientos de especies nativas', icon: Bird, from: '#0EA5A0', to: '#075E5B' },
+  { id: 'artesanias', label: 'Artesanías', tag: 'Tejido, guadua y cerámica', icon: Palette, from: '#C99A00', to: '#856600' },
 ]
 
 const DIAS = [2, 3, 4, 5]
@@ -133,7 +133,7 @@ export default function DemoExperience() {
 
               {step === 'dias' && (
                 <ChoiceStep
-                  title="¿Cuántos días tienes?"
+                  title="¿Cuánto dura tu viaje?"
                   hint="Toca una opción"
                   columns={2}
                   options={DIAS.map((d) => ({ id: String(d), label: `${d} días`, icon: CalendarDays }))}
@@ -161,7 +161,7 @@ export default function DemoExperience() {
 
               {step === 'zona' && (
                 <ChoiceStep
-                  title="¿Por dónde arrancas?"
+                  title="¿Por dónde quieres empezar?"
                   hint="Elige una zona o déjate sorprender"
                   columns={2}
                   options={ZONAS}
@@ -199,7 +199,7 @@ function Intro({ onStart }: { onStart: () => void }) {
       >
         <Sparkles className="h-9 w-9" />
       </motion.div>
-      <h1 className="font-display text-3xl leading-tight text-ink">Arma tu viaje a Caldas</h1>
+      <h1 className="font-display text-3xl leading-tight text-ink">Arma tu viaje por Caldas</h1>
       <p className="mt-3 max-w-[28ch] text-[0.95rem] leading-relaxed text-cloud/70">
         Cuatro preguntas, sin registro. Deslizas lo que te gusta y te armamos el plan.
       </p>
@@ -210,7 +210,7 @@ function Intro({ onStart }: { onStart: () => void }) {
       >
         Empezar <ArrowRight className="h-4 w-4" />
       </button>
-      <p className="mt-6 text-xs text-cloud/55">Tarda unos 20 segundos</p>
+      <p className="mt-6 text-xs text-cloud/55">Te toma unos 20 segundos</p>
     </div>
   )
 }
@@ -266,10 +266,10 @@ function SwipeStep({
     <div className="flex h-full flex-col">
       <div className="mb-3">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">Pregunta 1 de 4</p>
-        <h2 className="mt-1 font-display text-2xl text-ink">¿Qué te llama?</h2>
+        <h2 className="mt-1 font-display text-2xl text-ink">¿Qué planes te provocan?</h2>
         <p className="text-sm text-cloud/65">
-          Desliza <span className="font-semibold text-accent">derecha</span> lo que te gusta,{' '}
-          <span className="font-semibold text-cloud">izquierda</span> lo que no.
+          Desliza a la <span className="font-semibold text-accent">derecha</span> lo que te gusta, a
+          la <span className="font-semibold text-cloud">izquierda</span> lo que no.
         </p>
       </div>
 
@@ -398,7 +398,7 @@ function DeckCard({
         <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
         <div className="flex items-center justify-between">
           <span className="rounded-full bg-white/20 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-[0.14em]">
-            Experiencia
+            Plan
           </span>
           <Icon className="h-6 w-6 opacity-90" />
         </div>
@@ -517,7 +517,7 @@ function Result({ profile, onReset, reduce }: { profile: Profile; onReset: () =>
 
       <h2 className="text-center font-display text-xl text-ink">Tu perfil está listo</h2>
       <p className="mx-auto mt-1 max-w-[32ch] text-center text-[0.82rem] leading-snug text-cloud/65">
-        Con esto el motor arma tu feed y un itinerario de {profile.dias ?? '—'} días.
+        Con esto armamos tu feed y un itinerario de {profile.dias ?? '—'} días.
       </p>
 
       <div className="mt-3 flex-1 space-y-2.5 overflow-y-auto">
@@ -538,7 +538,7 @@ function Result({ profile, onReset, reduce }: { profile: Profile; onReset: () =>
 
         <div className="grid grid-cols-3 gap-2.5">
           <Mini label="Días" value={profile.dias != null ? `${profile.dias}` : '—'} />
-          <Mini label="Viajas" value={compania?.label ?? '—'} />
+          <Mini label="Compañía" value={compania?.label ?? '—'} />
           <Mini label="Zona" value={zona?.label ?? '—'} />
         </div>
 
@@ -558,7 +558,7 @@ function Result({ profile, onReset, reduce }: { profile: Profile; onReset: () =>
             })}
           </div>
           <p className="text-[0.8rem] leading-snug text-cloud/80">
-            El motor arma tu <span className="font-semibold text-accent">feed</span> e itinerario con fichas reales del catálogo.
+            Armado con fichas reales del <span className="font-semibold text-accent">catálogo</span>.
           </p>
         </div>
       </div>
