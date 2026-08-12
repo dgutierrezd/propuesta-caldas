@@ -172,145 +172,229 @@ export default function DemoExperience() {
   }, [])
 
   const qIndex = QUESTION_STEPS.indexOf(step) // -1 en intro/resultado
+  const desktop = useIsDesktop()
+
+  /* Contenido interno del marco (idéntico en móvil y escritorio): header con
+     logos + toggle + reset, barra de progreso, pasos y pie. Se define una sola
+     vez para reutilizar la MISMA lógica/estado; solo cambian paddings/tamaños
+     de "chrome" según el viewport. */
+  const inner = (
+    <>
+      {/* Header */}
+      <div className={desktop ? 'flex items-center justify-between px-8 pb-4 pt-7' : 'flex items-center justify-between px-6 pb-3 pt-6'}>
+        <div className="flex items-center gap-2.5">
+          <Image
+            src="/esnatural/caldas-es-natural-logo.png"
+            alt="Caldas es Natural"
+            width={40}
+            height={40}
+            className={desktop ? 'h-9 w-9 object-contain' : 'h-8 w-8 object-contain'}
+            priority
+          />
+          <span className="text-cloud/30">·</span>
+          <BrandLogo className={desktop ? 'h-6 w-auto' : 'h-5 w-auto'} />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <LangToggle lang={lang} onChange={setLang} label={T.langLabel} />
+          {step !== 'intro' && (
+            <button
+              type="button"
+              onClick={reset}
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-black/[0.08] bg-white text-cloud transition hover:border-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBFAF6]"
+              aria-label={T.reset}
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Barra de progreso de las 4 preguntas */}
+      {qIndex >= 0 && (
+        <div className={desktop ? 'flex gap-1.5 px-8 pb-4' : 'flex gap-1.5 px-6 pb-4'}>
+          {QUESTION_STEPS.map((s, i) => (
+            <div key={s} className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/[0.08]">
+              <motion.div
+                className="h-full rounded-full bg-accent"
+                initial={false}
+                animate={{ scaleX: i <= qIndex ? 1 : 0 }}
+                style={{ transformOrigin: 'left' }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Contenido */}
+      <div className="relative flex-1 overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -14 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className={desktop ? 'absolute inset-0 flex flex-col px-8 pb-7' : 'absolute inset-0 flex flex-col px-6 pb-6'}
+          >
+            {step === 'intro' && <Intro onStart={() => setStep('intereses')} T={T} />}
+
+            {step === 'intereses' && (
+              <SwipeStep
+                reduce={!!reduce}
+                lang={lang}
+                T={T}
+                liked={profile.intereses}
+                onLike={(id) =>
+                  setProfile((p) => ({ ...p, intereses: [...p.intereses, id] }))
+                }
+                onDone={() => setStep('dias')}
+              />
+            )}
+
+            {step === 'dias' && (
+              <ChoiceStep
+                title={T.q2Title}
+                hint={T.q2Hint}
+                columns={2}
+                options={DIAS.map((d) => ({ id: String(d), label: { es: `${d} ${t.es.days}`, en: `${d} ${t.en.days}` }, icon: CalendarDays }))}
+                lang={lang}
+                selected={profile.dias != null ? String(profile.dias) : null}
+                onPick={(id) => {
+                  setProfile((p) => ({ ...p, dias: Number(id) }))
+                  setStep('compania')
+                }}
+              />
+            )}
+
+            {step === 'compania' && (
+              <ChoiceStep
+                title={T.q3Title}
+                hint={T.q3Hint}
+                columns={2}
+                options={COMPANIA}
+                lang={lang}
+                selected={profile.compania}
+                onPick={(id) => {
+                  setProfile((p) => ({ ...p, compania: id }))
+                  setStep('municipios')
+                }}
+              />
+            )}
+
+            {step === 'municipios' && (
+              <MultiSelectStep
+                T={T}
+                selected={profile.municipios}
+                onToggle={(id) =>
+                  setProfile((p) => ({
+                    ...p,
+                    municipios: p.municipios.includes(id)
+                      ? p.municipios.filter((m) => m !== id)
+                      : [...p.municipios, id],
+                  }))
+                }
+                onContinue={() => setStep('resultado')}
+                onSurprise={() => {
+                  setProfile((p) => ({ ...p, municipios: [] }))
+                  setStep('resultado')
+                }}
+              />
+            )}
+
+            {step === 'resultado' && <Result profile={profile} onReset={reset} reduce={!!reduce} lang={lang} T={T} />}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Pie */}
+      <div className={desktop ? 'px-8 pb-5 pt-1 text-center text-[0.72rem] text-cloud/55' : 'px-6 pb-4 pt-1 text-center text-[0.68rem] text-cloud/55'}>
+        {T.footer}
+      </div>
+    </>
+  )
 
   return (
     <div className="relative flex h-[100dvh] w-screen items-center justify-center overflow-hidden px-4">
       <Ambient />
 
-      {/* Marco tipo teléfono */}
-      <div className="relative z-10 flex h-[min(780px,92vh)] w-[min(410px,94vw)] flex-col overflow-hidden rounded-[38px] border border-black/[0.08] bg-[#FBFAF6] shadow-[0_30px_80px_rgba(29,31,27,0.22)]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pb-3 pt-6">
-          <div className="flex items-center gap-2.5">
-            <Image
-              src="/esnatural/caldas-es-natural-logo.png"
-              alt="Caldas es Natural"
-              width={40}
-              height={40}
-              className="h-8 w-8 object-contain"
-              priority
-            />
-            <span className="text-cloud/30">·</span>
-            <BrandLogo className="h-5 w-auto" />
-          </div>
+      {desktop ? (
+        /* Escritorio (≥ lg): dos columnas dentro de un contenedor ancho.
+           Izquierda = panel de marca con foto real. Derecha = el mismo flujo
+           interactivo en una tarjeta más amplia. */
+        <div className="relative z-10 flex h-[min(820px,90vh)] w-full max-w-6xl overflow-hidden rounded-[40px] border border-black/[0.08] bg-[#FBFAF6] shadow-[0_40px_100px_rgba(29,31,27,0.24)]">
+          <BrandPanel T={T} />
+          <div className="flex min-w-0 flex-1 flex-col">{inner}</div>
+        </div>
+      ) : (
+        /* Móvil (< lg): marco tipo teléfono, sin cambios respecto al original. */
+        <div className="relative z-10 flex h-[min(780px,92vh)] w-[min(410px,94vw)] flex-col overflow-hidden rounded-[38px] border border-black/[0.08] bg-[#FBFAF6] shadow-[0_30px_80px_rgba(29,31,27,0.22)]">
+          {inner}
+        </div>
+      )}
+    </div>
+  )
+}
 
-          <div className="flex items-center gap-2">
-            <LangToggle lang={lang} onChange={setLang} label={T.langLabel} />
-            {step !== 'intro' && (
-              <button
-                type="button"
-                onClick={reset}
-                className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-black/[0.08] bg-white text-cloud transition hover:border-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBFAF6]"
-                aria-label={T.reset}
-              >
-                <RotateCcw className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+/* ============================================================== Hooks */
+// Detecta ≥ lg (1024px) de forma segura para SSR: renderiza móvil por defecto
+// (igual al servidor, evita mismatch de hidratación) y cambia tras montar.
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const update = () => setIsDesktop(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+  return isDesktop
+}
+
+/* ============================================================== Brand panel (desktop) */
+function BrandPanel({ T }: { T: Dict }) {
+  return (
+    <div className="relative w-[45%] shrink-0 overflow-hidden">
+      <Image
+        src="/esnatural/foto-centro-sur.jpg"
+        alt=""
+        fill
+        sizes="45vw"
+        className="pointer-events-none select-none object-cover"
+        priority
+      />
+      {/* Scrim verde para legibilidad */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: 'linear-gradient(150deg, rgba(18,50,7,0.74) 0%, rgba(47,125,20,0.66) 52%, rgba(14,40,5,0.88) 100%)' }}
+      />
+      <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[#68C41C]/25 blur-3xl" />
+
+      <div className="relative flex h-full flex-col justify-between p-10">
+        {/* Co-branding sobre chip claro para contraste */}
+        <div className="inline-flex items-center gap-3 self-start rounded-2xl bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur">
+          <Image
+            src="/esnatural/caldas-es-natural-logo.png"
+            alt="Caldas es Natural"
+            width={44}
+            height={44}
+            className="h-9 w-9 object-contain"
+            priority
+          />
+          <span className="text-cloud/30">·</span>
+          <BrandLogo className="h-6 w-auto" />
         </div>
 
-        {/* Barra de progreso de las 4 preguntas */}
-        {qIndex >= 0 && (
-          <div className="flex gap-1.5 px-6 pb-4">
-            {QUESTION_STEPS.map((s, i) => (
-              <div key={s} className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/[0.08]">
-                <motion.div
-                  className="h-full rounded-full bg-accent"
-                  initial={false}
-                  animate={{ scaleX: i <= qIndex ? 1 : 0 }}
-                  style={{ transformOrigin: 'left' }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Contenido */}
-        <div className="relative flex-1 overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={step}
-              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -14 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0 flex flex-col px-6 pb-6"
-            >
-              {step === 'intro' && <Intro onStart={() => setStep('intereses')} T={T} />}
-
-              {step === 'intereses' && (
-                <SwipeStep
-                  reduce={!!reduce}
-                  lang={lang}
-                  T={T}
-                  liked={profile.intereses}
-                  onLike={(id) =>
-                    setProfile((p) => ({ ...p, intereses: [...p.intereses, id] }))
-                  }
-                  onDone={() => setStep('dias')}
-                />
-              )}
-
-              {step === 'dias' && (
-                <ChoiceStep
-                  title={T.q2Title}
-                  hint={T.q2Hint}
-                  columns={2}
-                  options={DIAS.map((d) => ({ id: String(d), label: { es: `${d} ${t.es.days}`, en: `${d} ${t.en.days}` }, icon: CalendarDays }))}
-                  lang={lang}
-                  selected={profile.dias != null ? String(profile.dias) : null}
-                  onPick={(id) => {
-                    setProfile((p) => ({ ...p, dias: Number(id) }))
-                    setStep('compania')
-                  }}
-                />
-              )}
-
-              {step === 'compania' && (
-                <ChoiceStep
-                  title={T.q3Title}
-                  hint={T.q3Hint}
-                  columns={2}
-                  options={COMPANIA}
-                  lang={lang}
-                  selected={profile.compania}
-                  onPick={(id) => {
-                    setProfile((p) => ({ ...p, compania: id }))
-                    setStep('municipios')
-                  }}
-                />
-              )}
-
-              {step === 'municipios' && (
-                <MultiSelectStep
-                  T={T}
-                  selected={profile.municipios}
-                  onToggle={(id) =>
-                    setProfile((p) => ({
-                      ...p,
-                      municipios: p.municipios.includes(id)
-                        ? p.municipios.filter((m) => m !== id)
-                        : [...p.municipios, id],
-                    }))
-                  }
-                  onContinue={() => setStep('resultado')}
-                  onSurprise={() => {
-                    setProfile((p) => ({ ...p, municipios: [] }))
-                    setStep('resultado')
-                  }}
-                />
-              )}
-
-              {step === 'resultado' && <Result profile={profile} onReset={reset} reduce={!!reduce} lang={lang} T={T} />}
-            </motion.div>
-          </AnimatePresence>
+        <div>
+          <h1 className="font-display text-4xl leading-[1.05] text-white xl:text-5xl">{T.introTitle}</h1>
+          <p className="mt-4 max-w-[34ch] text-base leading-relaxed text-white/85">{T.introSub}</p>
+          <p className="mt-6 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-sm font-medium text-white/90 backdrop-blur">
+            {T.introTime}
+          </p>
         </div>
 
-        {/* Pie */}
-        <div className="px-6 pb-4 pt-1 text-center text-[0.68rem] text-cloud/55">
-          {T.footer}
-        </div>
+        <p className="text-sm text-white/70">{T.footer}</p>
       </div>
     </div>
   )
