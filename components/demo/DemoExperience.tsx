@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
 import {
   AnimatePresence,
@@ -13,8 +13,9 @@ import {
 import {
   Coffee, Droplets, Footprints, Compass, Landmark, UtensilsCrossed, Bird, Palette,
   User, Heart, Baby, Users, X, Check, RotateCcw, MapPin, ArrowRight,
-  CalendarDays, Wand2, type LucideIcon,
+  CalendarDays, Wand2, ExternalLink, AlertTriangle, type LucideIcon,
 } from 'lucide-react'
+import type { PlanResponse } from '@/lib/plan'
 
 /* ---------------------------------------------------------------- i18n */
 type Lang = 'es' | 'en'
@@ -61,7 +62,16 @@ const t = {
     feedNote: 'Armado con fichas reales del catálogo.',
     catalog: 'catálogo',
     retry: 'Probar de nuevo',
-    footer: 'Prototipo · Adisoft para Caldas es Natural · datos ilustrativos',
+    footer: 'Prototipo · Adisoft para Caldas es Natural · fichas reales del catálogo',
+    itTitle: 'Tu itinerario por Caldas',
+    itSub: (d: string) => `${d} días · contenido real de esnatural.caldas.gov.co`,
+    dayLabel: 'Día',
+    viewSheet: 'Ver ficha',
+    loading: 'Armando tu itinerario con fichas reales…',
+    errTitle: 'No pudimos armar el itinerario',
+    errBody: 'El catálogo no respondió. Inténtalo de nuevo en un momento.',
+    emptyDay: 'Sin fichas para este municipio todavía.',
+    startOver: 'Empezar de nuevo',
   },
   en: {
     reset: 'Restart demo',
@@ -103,7 +113,16 @@ const t = {
     feedNote: 'Built with real cards from the catalog.',
     catalog: 'catalog',
     retry: 'Try again',
-    footer: 'Prototype · Adisoft for Caldas es Natural · sample data',
+    footer: 'Prototype · Adisoft for Caldas es Natural · real catalog listings',
+    itTitle: 'Your Caldas itinerary',
+    itSub: (d: string) => `${d} days · real content from esnatural.caldas.gov.co`,
+    dayLabel: 'Day',
+    viewSheet: 'View listing',
+    loading: 'Building your itinerary with real listings…',
+    errTitle: 'We could not build the itinerary',
+    errBody: 'The catalog did not respond. Please try again in a moment.',
+    emptyDay: 'No listings for this town yet.',
+    startOver: 'Start over',
   },
 }
 type Dict = typeof t['es']
@@ -851,7 +870,15 @@ function MultiSelectStep({
   )
 }
 
-/* ============================================================== Result */
+/* ============================================================== Result
+   Llama a /api/plan con el perfil, muestra un estado de carga elegante y luego
+   renderiza el ITINERARIO REAL (fichas del catálogo esnatural.caldas.gov.co).
+   El contenido del catálogo llega en español; la UI se traduce ES/EN. */
+type FetchState =
+  | { status: 'loading' }
+  | { status: 'ok'; plan: PlanResponse }
+  | { status: 'error' }
+
 function Result({
   profile,
   onReset,
@@ -865,115 +892,203 @@ function Result({
   lang: Lang
   T: Dict
 }) {
-  const intereses = useMemo(
-    () => INTERESES.filter((it) => profile.intereses.includes(it.id)),
-    [profile.intereses],
-  )
-  const municipios = useMemo(
-    () => MUNICIPIOS.filter((m) => profile.municipios.includes(m.id)),
-    [profile.municipios],
-  )
-  const compania = COMPANIA.find((c) => c.id === profile.compania)
+  const [state, setState] = useState<FetchState>({ status: 'loading' })
+  const [attempt, setAttempt] = useState(0)
 
-  const feed = (intereses.length ? intereses : INTERESES).slice(0, 2)
+  useEffect(() => {
+    let alive = true
+    setState({ status: 'loading' })
+    const ctrl = new AbortController()
+    fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(profile),
+      signal: ctrl.signal,
+    })
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status))
+        return r.json() as Promise<PlanResponse>
+      })
+      .then((plan) => {
+        if (alive) setState({ status: 'ok', plan })
+      })
+      .catch((e) => {
+        if (alive && (e as Error).name !== 'AbortError') setState({ status: 'error' })
+      })
+    return () => {
+      alive = false
+      ctrl.abort()
+    }
+    // profile es estable dentro de este paso; attempt fuerza reintento.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt])
 
-  const destino =
-    municipios.length === 0
-      ? T.surprise
-      : municipios.length === 1
-        ? municipios[0]!.label
-        : `${municipios.length} ${T.municipiosWord}`
+  const interesLabels = INTERESES.filter((it) =>
+    (state.status === 'ok' ? state.plan.usedInterests : profile.intereses).includes(it.id),
+  )
 
   return (
     <div className="flex h-full flex-col">
-      <motion.div
-        initial={reduce ? { opacity: 0 } : { scale: 0.6, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 260, damping: 16 }}
-        className="mx-auto mb-2.5 grid h-14 w-14 place-items-center rounded-full bg-accent text-white shadow-lg"
-      >
-        <Check className="h-7 w-7" strokeWidth={2.5} />
-      </motion.div>
-
-      <h2 className="text-center font-display text-xl text-ink">{T.resTitle}</h2>
-      <p className="mx-auto mt-1 max-w-[32ch] text-center text-[0.82rem] leading-snug text-cloud/65">
-        {T.resSub(profile.dias != null ? String(profile.dias) : '—')}
-      </p>
-
-      <div className="mt-3 flex-1 space-y-2.5 overflow-y-auto">
-        <div className="rounded-2xl border border-black/[0.06] bg-white p-3">
-          <p className="mb-1.5 text-[0.62rem] font-bold uppercase tracking-[0.14em] text-cloud/55">{T.interestsLabel}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {intereses.length ? (
-              intereses.map((it) => (
-                <span key={it.id} className="rounded-full bg-accent/10 px-2 py-0.5 text-[0.72rem] font-semibold text-accent">
-                  {it.label[lang]}
-                </span>
-              ))
-            ) : (
-              <span className="text-[0.8rem] text-cloud/65">{T.noInterests}</span>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-black/[0.06] bg-white p-3">
-          <p className="mb-1.5 text-[0.62rem] font-bold uppercase tracking-[0.14em] text-cloud/55">{T.municipiosLabel}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {municipios.length ? (
-              municipios.map((m) => (
-                <span key={m.id} className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[0.72rem] font-semibold text-accent">
-                  <MapPin className="h-3 w-3" /> {m.label}
-                </span>
-              ))
-            ) : (
-              <span className="inline-flex items-center gap-1 text-[0.8rem] text-cloud/65">
-                <Wand2 className="h-3.5 w-3.5 text-accent" /> {T.surpriseTag}
+      {/* Encabezado */}
+      <div className="mb-3 text-center">
+        <motion.div
+          initial={reduce ? { opacity: 0 } : { scale: 0.6, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 16 }}
+          className="mx-auto mb-2 grid h-11 w-11 place-items-center rounded-full bg-accent text-white shadow-lg"
+        >
+          <MapPin className="h-5 w-5" strokeWidth={2.4} />
+        </motion.div>
+        <h2 className="font-display text-xl text-ink">{T.itTitle}</h2>
+        <p className="mx-auto mt-0.5 max-w-[34ch] text-[0.78rem] leading-snug text-cloud/65">
+          {T.itSub(profile.dias != null ? String(profile.dias) : '—')}
+        </p>
+        {state.status === 'ok' && interesLabels.length > 0 && (
+          <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+            {interesLabels.map((it) => (
+              <span key={it.id} className="rounded-full bg-accent/10 px-2 py-0.5 text-[0.68rem] font-semibold text-accent">
+                {it.label[lang]}
               </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Cuerpo con scroll interno */}
+      <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
+        {state.status === 'loading' && <ItinerarySkeleton reduce={reduce} label={T.loading} />}
+        {state.status === 'error' && (
+          <div className="grid h-full place-items-center text-center">
+            <div>
+              <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-rose-100 text-rose-500">
+                <AlertTriangle className="h-7 w-7" />
+              </div>
+              <p className="font-display text-lg text-ink">{T.errTitle}</p>
+              <p className="mx-auto mt-1 max-w-[30ch] text-[0.82rem] text-cloud/65">{T.errBody}</p>
+              <button
+                type="button"
+                onClick={() => setAttempt((a) => a + 1)}
+                className="mt-4 inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-accent-hover active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBFAF6]"
+              >
+                <RotateCcw className="h-4 w-4" /> {T.retry}
+              </button>
+            </div>
+          </div>
+        )}
+        {state.status === 'ok' && (
+          <div className="space-y-3 pb-1">
+            {state.plan.days.map((day, di) => (
+              <motion.div
+                key={day.n}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: reduce ? 0 : di * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                className="overflow-hidden rounded-2xl border border-black/[0.07] bg-white"
+              >
+                <div className="flex items-center gap-2.5 border-b border-black/[0.05] bg-accent/[0.06] px-3.5 py-2.5">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent text-[0.8rem] font-bold text-white">
+                    {day.n}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-[0.6rem] font-bold uppercase tracking-[0.14em] text-cloud/55">
+                      {T.dayLabel} {day.n}
+                    </p>
+                    <p className="truncate font-display text-[0.98rem] leading-tight text-ink">
+                      <MapPin className="mr-1 inline h-3.5 w-3.5 text-accent" />
+                      {day.municipio}
+                    </p>
+                  </div>
+                </div>
+
+                {day.items.length === 0 ? (
+                  <p className="px-3.5 py-3 text-[0.8rem] text-cloud/60">{T.emptyDay}</p>
+                ) : (
+                  <ul className="divide-y divide-black/[0.05]">
+                    {day.items.map((item) => (
+                      <li key={item.link}>
+                        <a
+                          href={item.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex items-center gap-3 px-3 py-2.5 transition hover:bg-accent/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+                        >
+                          <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-accent/10 text-accent">
+                            {item.image ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={item.image}
+                                alt=""
+                                loading="lazy"
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <MapPin className="h-5 w-5" />
+                            )}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-display text-[0.92rem] leading-tight text-ink">
+                              {item.title}
+                            </span>
+                            <span className="mt-0.5 inline-block rounded-full bg-black/[0.04] px-2 py-0.5 text-[0.66rem] font-semibold text-cloud/70">
+                              {item.tipo}
+                            </span>
+                          </span>
+                          <span className="inline-flex shrink-0 items-center gap-1 text-[0.72rem] font-semibold text-accent opacity-80 transition group-hover:opacity-100">
+                            {T.viewSheet} <ExternalLink className="h-3.5 w-3.5" />
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </motion.div>
+            ))}
+
+            {state.plan.note && (
+              <p className="rounded-xl border border-accent/15 bg-accent/[0.05] px-3 py-2 text-[0.74rem] leading-snug text-cloud/70">
+                {state.plan.note}
+              </p>
             )}
           </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2.5">
-          <Mini label={T.miniDays} value={profile.dias != null ? `${profile.dias}` : '—'} />
-          <Mini label={T.miniCompany} value={compania?.label[lang] ?? '—'} />
-          <Mini label={T.miniDest} value={destino} />
-        </div>
-
-        <div className="flex items-center gap-3 rounded-2xl border border-accent/20 bg-accent/[0.06] p-3">
-          <div className="flex -space-x-2">
-            {feed.map((it) => {
-              const Icon = it.icon
-              return (
-                <span
-                  key={it.id}
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-white ring-2 ring-[#FBFAF6]"
-                  style={{ background: `linear-gradient(155deg, ${it.from}, ${it.to})` }}
-                >
-                  <Icon className="h-4 w-4" />
-                </span>
-              )
-            })}
-          </div>
-          <p className="text-[0.8rem] leading-snug text-cloud/80">{T.feedNote}</p>
-        </div>
+        )}
       </div>
 
       <button
         type="button"
         onClick={onReset}
-        className="mt-3 inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-base font-semibold text-white shadow-md transition hover:bg-accent-hover active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBFAF6]"
+        className="mt-3 inline-flex min-h-[44px] w-full shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full bg-accent px-6 py-3 text-base font-semibold text-white shadow-md transition hover:bg-accent-hover active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBFAF6]"
       >
-        <RotateCcw className="h-4 w-4" /> {T.retry}
+        <RotateCcw className="h-4 w-4" /> {T.startOver}
       </button>
     </div>
   )
 }
 
-function Mini({ label, value }: { label: string; value: string }) {
+/* Skeleton animado (respeta prefers-reduced-motion vía `reduce`). */
+function ItinerarySkeleton({ reduce, label }: { reduce: boolean; label: string }) {
+  const shimmer = reduce
+    ? {}
+    : { animate: { opacity: [0.5, 1, 0.5] }, transition: { duration: 1.4, repeat: Infinity, ease: 'easeInOut' as const } }
   return (
-    <div className="rounded-2xl border border-black/[0.06] bg-white p-3 text-center">
-      <p className="text-[0.62rem] font-bold uppercase tracking-[0.12em] text-cloud/55">{label}</p>
-      <p className="mt-1 truncate font-display text-base text-ink">{value}</p>
+    <div className="space-y-3">
+      <p className="text-center text-[0.8rem] font-medium text-accent">{label}</p>
+      {[0, 1].map((k) => (
+        <div key={k} className="overflow-hidden rounded-2xl border border-black/[0.07] bg-white">
+          <div className="flex items-center gap-2.5 border-b border-black/[0.05] bg-accent/[0.06] px-3.5 py-2.5">
+            <motion.span {...shimmer} className="h-8 w-8 rounded-full bg-accent/25" />
+            <motion.span {...shimmer} className="h-4 w-28 rounded bg-black/[0.08]" />
+          </div>
+          {[0, 1, 2].map((r) => (
+            <div key={r} className="flex items-center gap-3 px-3 py-2.5">
+              <motion.span {...shimmer} className="h-14 w-14 rounded-xl bg-black/[0.06]" />
+              <div className="flex-1 space-y-1.5">
+                <motion.span {...shimmer} className="block h-3.5 w-3/4 rounded bg-black/[0.08]" />
+                <motion.span {...shimmer} className="block h-3 w-1/3 rounded bg-black/[0.05]" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   )
 }
